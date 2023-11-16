@@ -1,20 +1,16 @@
-# Use an official Node runtime as the base image
-FROM node:21.2
-
-# Set the working directory in the container to /app
+# ---- Base Node ----
+FROM node:21.2 AS base
 WORKDIR /app
-
-# Copy package.json and yarn.lock files to the workdir
 COPY package.json yarn.lock ./
-
-# Install all dependencies
 RUN yarn install --production
 
-# Copy the current directory contents into the container at /app
+# ---- Build ----
+FROM base AS build
+WORKDIR /app
 COPY . .
+RUN yarn build
 
-# Make port 3000 available to the world outside this container
-EXPOSE 3000
-
-# Run the app when the container launches
-CMD ["yarn", "start"]
+# ---- Release ----
+FROM nginx:1.25.3-alpine-slim AS release
+WORKDIR /app
+COPY --from=build /app/build /usr/share/nginx/html
